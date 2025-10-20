@@ -16,7 +16,7 @@ class BibliotecaApp {
 
   // Proteger rutas - redirigir al login si no está autenticado
   protegerRutas() {
-    const rutasProtegidas = ["dashboard", "libros", "socios", "prestamos"];
+    const rutasProtegidas = ["panel", "libros", "socios", "prestamos"];
     const paginaActual = window.location.pathname.split("/").pop();
 
     if (
@@ -27,7 +27,7 @@ class BibliotecaApp {
     }
   }
 
-  // Cargar datos iniciales para el dashboard
+  // Cargar datos iniciales para el panel
   async cargarDatosIniciales() {
     if (AuthService.estaLogueado()) {
       try {

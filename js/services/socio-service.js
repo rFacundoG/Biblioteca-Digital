@@ -12,6 +12,18 @@ class SocioService {
     return data;
   }
 
+  // Obtener socio por ID
+  async obtenerSocioPorId(id) {
+    const { data, error } = await supabase
+      .from("socios")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
   // Buscar socios por nombre o DNI
   async buscarSocios(termino) {
     const { data, error } = await supabase
@@ -52,6 +64,26 @@ class SocioService {
 
     if (error) throw error;
     return data[0];
+  }
+
+  // Actualizar socio
+  async actualizarSocio(id, socioData) {
+    const { data, error } = await supabase
+      .from("socios")
+      .update(socioData)
+      .eq("id", id)
+      .select();
+
+    if (error) throw error;
+    return data[0];
+  }
+
+  // Eliminar socio
+  async eliminarSocio(id) {
+    const { error } = await supabase.from("socios").delete().eq("id", id);
+
+    if (error) throw error;
+    return true;
   }
 
   // Verificar si DNI ya existe

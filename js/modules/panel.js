@@ -1,9 +1,9 @@
-import { AuthService } from "../js/auth/auth.js";
-import { libroService } from "../js/services/libro-service.js";
-import { socioService } from "../js/services/socio-service.js";
-import { prestamoService } from "../js/services/prestamo-service.js";
+import { AuthService } from "../auth/auth.js";
+import { libroService } from "../services/libro-service.js";
+import { socioService } from "../services/socio-service.js";
+import { prestamoService } from "../services/prestamo-service.js";
 
-class DashboardManager {
+class PanelManager {
   constructor() {
     this.init();
   }
@@ -11,7 +11,7 @@ class DashboardManager {
   async init() {
     await this.checkAuthentication();
     this.setupEventListeners();
-    this.loadDashboardData();
+    this.loadPanelData();
     this.updateCurrentDate();
   }
 
@@ -56,7 +56,7 @@ class DashboardManager {
     );
   }
 
-  async loadDashboardData() {
+  async loadPanelData() {
     try {
       // Cargar datos en paralelo
       const [libros, socios, prestamosActivos] = await Promise.all([
@@ -72,7 +72,7 @@ class DashboardManager {
       this.loadRecentLoans(prestamosActivos);
       this.loadPopularBooks(libros);
     } catch (error) {
-      console.error("Error cargando datos del dashboard:", error);
+      console.error("Error cargando datos del Panel:", error);
     }
   }
 
@@ -144,7 +144,7 @@ class DashboardManager {
   }
 }
 
-// Inicializar dashboard cuando se carga la página
+// Inicializar Panel cuando se carga la página
 document.addEventListener("DOMContentLoaded", () => {
-  new DashboardManager();
+  new PanelManager();
 });

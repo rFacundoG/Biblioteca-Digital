@@ -27,7 +27,7 @@ class LoginManager {
 
   async checkExistingSession() {
     if (await AuthService.estaLogueado()) {
-      this.redirectToDashboard();
+      this.redirectToPanel();
     }
   }
 
@@ -87,7 +87,7 @@ class LoginManager {
             true,
             '<i class="fas fa-check me-2"></i>Acceso concedido'
           );
-          this.redirectToDashboard();
+          this.redirectToPanel();
         } else {
           await AuthService.logout();
           this.showError("No tienes permisos para acceder al sistema.");
@@ -147,9 +147,9 @@ class LoginManager {
     }, 500);
   }
 
-  redirectToDashboard() {
+  redirectToPanel() {
     setTimeout(() => {
-      window.location.href = "pages/dashboard.html";
+      window.location.href = "pages/panel.html";
     }, 1500);
   }
 }
