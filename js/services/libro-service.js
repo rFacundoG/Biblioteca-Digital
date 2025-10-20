@@ -34,6 +34,38 @@ class LibroService {
     return data[0];
   }
 
+  // Obtener libro por ID
+  async obtenerLibroPorId(id) {
+    const { data, error } = await supabase
+      .from("libros")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  // Actualizar libro
+  async actualizarLibro(id, libroData) {
+    const { data, error } = await supabase
+      .from("libros")
+      .update(libroData)
+      .eq("id", id)
+      .select();
+
+    if (error) throw error;
+    return data[0];
+  }
+
+  // Eliminar libro
+  async eliminarLibro(id) {
+    const { error } = await supabase.from("libros").delete().eq("id", id);
+
+    if (error) throw error;
+    return true;
+  }
+
   // Actualizar estado de libro
   async actualizarEstadoLibro(id, nuevoEstado) {
     const { data, error } = await supabase
