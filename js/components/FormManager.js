@@ -29,43 +29,15 @@ export class FormManager {
 
     inputs.forEach((input) => {
       if (input.name && input.type !== "submit" && input.type !== "button") {
-        // Para checkboxes
-        if (input.type === "checkbox") {
-          data[input.name] = input.checked;
-        }
-        // Para radios
-        else if (input.type === "radio") {
-          if (input.checked) {
-            data[input.name] = input.value;
-          }
-        }
-        // Para otros inputs
-        else {
-          const value = input.value.trim();
-          // Solo convertir a null si el campo está vacío y es opcional
-          if (value === "" && this.isOptionalField(input.name)) {
-            data[input.name] = null;
-          } else {
-            data[input.name] = value;
-          }
-        }
+        // Para todos los inputs (text, email, tel, textarea, select)
+        const value = input.value.trim();
+
+        // Convertir a null si está vacío (opcional para todos los campos)
+        data[input.name] = value === "" ? null : value;
       }
     });
 
     return data;
-  }
-
-  // Método para identificar campos opcionales
-  isOptionalField(fieldName) {
-    const optionalFields = [
-      "email",
-      "telefono",
-      "descripcion",
-      "portada_url",
-      "anio_publicacion",
-      "isbn",
-    ];
-    return optionalFields.includes(fieldName);
   }
 
   async submitForm(submitCallback, formData) {
