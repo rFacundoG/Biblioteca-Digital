@@ -1,0 +1,17 @@
+{
+  "cdn_dependencies": {
+    "bootstrap": {
+      "version": "5.3.8",
+      "css": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css",
+      "js": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+    },
+    "fontawesome": {
+      "version": "6.4.0",
+      "css": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    },
+    "supabase": {
+      "version": "2.x",
+      "js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
+    }
+  }
+}
