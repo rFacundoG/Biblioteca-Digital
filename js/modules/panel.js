@@ -1,44 +1,40 @@
-import { AuthService } from "../auth/auth.js";
-import { libroService } from "../services/libro-service.js";
-import { socioService } from "../services/socio-service.js";
-import { prestamoService } from "../services/prestamo-service.js";
+import { servicioSingleton } from "../services/servicios-module.js";
+import { BaseManager } from "../components/BaseManager.js";
 
-class PanelManager {
+class PanelManager extends BaseManager {
   constructor() {
-    this.init();
+    super();
   }
 
   async init() {
-    await this.checkAuthentication();
+    await super.init();
     this.setupEventListeners();
     this.loadPanelData();
     this.updateCurrentDate();
   }
 
-  async checkAuthentication() {
-    if (!(await AuthService.estaLogueado())) {
-      window.location.href = "../index.html";
-      return;
-    }
-
-    // Mostrar nombre del usuario
-    const user = await AuthService.getUsuarioActual();
-    if (user) {
-      document.getElementById("userName").textContent = user.email;
-    }
+  async loadData() {
+    await this.loadPanelData();
   }
 
   setupEventListeners() {
-    // Logout
-    document.getElementById("logoutBtn").addEventListener("click", (e) => {
-      e.preventDefault();
-      this.handleLogout();
-    });
+    super.setupEventListeners();
   }
 
-  async handleLogout() {
-    if (await AuthService.logout()) {
-      window.location.href = "../index.html";
+  async loadPanelData() {
+    this.mostrarLoading(true);
+    try {
+      // Solo cargar datos necesarios para estadisticas
+      const [libros, socios] = await Promise.all([
+        servicioSingleton.obtenerLibros(),
+        servicioSingleton.obtenerSocios(),
+      ]);
+
+      this.updateStats(libros, socios);
+    } catch (error) {
+      this.mostrarError("Error cargando datos del panel: " + error.message);
+    } finally {
+      this.mostrarLoading(false);
     }
   }
 
@@ -50,101 +46,29 @@ class PanelManager {
       month: "long",
       day: "numeric",
     };
-    document.getElementById("currentDate").textContent = now.toLocaleDateString(
-      "es-ES",
-      options
-    );
-  }
-
-  async loadPanelData() {
-    try {
-      // Cargar datos en paralelo
-      const [libros, socios, prestamosActivos] = await Promise.all([
-        libroService.obtenerLibros(),
-        socioService.obtenerSocios(),
-        prestamoService.obtenerPrestamosActivos(),
-      ]);
-
-      // Actualizar estadísticas
-      this.updateStats(libros, socios, prestamosActivos);
-
-      // Cargar datos adicionales
-      this.loadRecentLoans(prestamosActivos);
-      this.loadPopularBooks(libros);
-    } catch (error) {
-      console.error("Error cargando datos del Panel:", error);
+    const dateElement = document.getElementById("currentDate");
+    if (dateElement) {
+      dateElement.textContent = now.toLocaleDateString("es-ES", options);
     }
   }
 
-  updateStats(libros, socios, prestamosActivos) {
-    document.getElementById("totalLibros").textContent = libros.length;
-    document.getElementById("totalSocios").textContent = socios.length;
-    document.getElementById("prestamosActivos").textContent =
-      prestamosActivos.length;
+  updateStats(libros, socios) {
+    const stats = {
+      totalLibros: libros.length,
+      totalSocios: socios.length,
+      prestamosActivos: 0, // Por ahora en 0
+      librosDisponibles: libros.filter((libro) => libro.estado === "disponible")
+        .length,
+    };
 
-    const librosDisponibles = libros.filter(
-      (libro) => libro.estado === "disponible"
-    ).length;
-    document.getElementById("librosDisponibles").textContent =
-      librosDisponibles;
-  }
-
-  loadRecentLoans(prestamos) {
-    const container = document.getElementById("recentLoansList");
-    const recentLoans = prestamos.slice(0, 5); // Últimos 5 préstamos
-
-    if (recentLoans.length === 0) {
-      container.innerHTML =
-        '<div class="activity-item text-muted">No hay préstamos activos</div>';
-      return;
-    }
-
-    container.innerHTML = recentLoans
-      .map(
-        (prestamo) => `
-                    <div class="activity-item">
-                        <div class="fw-bold">${
-                          prestamo.libros?.titulo || "Libro"
-                        }</div>
-                        <small class="text-muted">
-                            Por: ${prestamo.socios?.nombre || "Socio"} • 
-                            Vence: ${new Date(
-                              prestamo.fecha_devolucion
-                            ).toLocaleDateString()}
-                        </small>
-                    </div>
-                `
-      )
-      .join("");
-  }
-
-  loadPopularBooks(libros) {
-    const container = document.getElementById("popularBooksList");
-    const popularBooks = libros.slice(0, 5); // Primeros 5 libros
-
-    container.innerHTML = popularBooks
-      .map(
-        (libro) => `
-                    <div class="activity-item">
-                        <div class="fw-bold">${libro.titulo}</div>
-                        <small class="text-muted">
-                            ${libro.autor} • 
-                            <span class="badge ${
-                              libro.estado === "disponible"
-                                ? "bg-success"
-                                : "bg-warning"
-                            }">
-                                ${libro.estado}
-                            </span>
-                        </small>
-                    </div>
-                `
-      )
-      .join("");
+    Object.keys(stats).forEach((key) => {
+      const element = document.getElementById(key);
+      if (element) element.textContent = stats[key];
+    });
   }
 }
 
-// Inicializar Panel cuando se carga la página
+// Inicializar
 document.addEventListener("DOMContentLoaded", () => {
-  new PanelManager();
+  new PanelManager().init();
 });

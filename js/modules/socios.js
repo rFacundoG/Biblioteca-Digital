@@ -1,7 +1,9 @@
-import { socioService } from "../services/socio-service.js";
+// socios.js - VERSIÓN CON PATRONES DE DISEÑO
+import { servicioSingleton } from "../services/servicios-module.js";
 import { BaseManager } from "../components/BaseManager.js";
 import { TableManager } from "../components/TableManager.js";
 import { FormManager } from "../components/FormManager.js";
+import { FilterStrategy, FilterManager } from "../components/FilterStrategy.js";
 
 class SociosManager extends BaseManager {
   constructor() {
@@ -14,29 +16,44 @@ class SociosManager extends BaseManager {
       "editarSocioForm",
       "editarSocioModal"
     );
-    this.init();
+
+    // Strategy Pattern para filtros
+    this.filterManager = new FilterManager(
+      new FilterStrategy.COMPOSITE([
+        new FilterStrategy.TEXT(["nombre", "dni", "numero_socio"]),
+        new FilterStrategy.BOOLEAN("activo"),
+      ])
+    );
   }
 
   async init() {
-    if (!(await this.checkAuthentication())) return;
+    await super.init();
+  }
 
-    this.updateUserInfo();
-    this.setupEventListeners();
-    await this.cargarSocios();
+  async loadData() {
+    this.mostrarLoading(true);
+    try {
+      this.socios = await servicioSingleton.obtenerSocios();
+      this.filtrados = [...this.socios];
+      this.actualizarEstadisticas();
+      this.renderTable();
+    } catch (error) {
+      this.mostrarError("Error al cargar los socios: " + error.message);
+    } finally {
+      this.mostrarLoading(false);
+    }
   }
 
   setupEventListeners() {
-    this.setupLogoutListener();
+    super.setupEventListeners();
     this.formManager.setupForm((data) => this.registrarNuevoSocio(data));
+    this.editFormManager.setupForm((data) => this.guardarEdicionSocio(data));
 
     this.setupSearchInput("searchInput", (value) => this.filtrarSocios(value));
     this.setupFilterSelect("filterStatus", (value) =>
       this.filtrarSocios(document.getElementById("searchInput").value, value)
     );
 
-    this.editFormManager.setupForm((data) => this.guardarEdicionSocio(data));
-
-    // Event delegation para los botones de la tabla
     this.setupTableEventListeners();
   }
 
@@ -44,21 +61,13 @@ class SociosManager extends BaseManager {
     const tbody = document.getElementById("sociosTableBody");
     if (tbody) {
       tbody.addEventListener("click", (e) => {
-        const target = e.target;
-
-        // Encontrar el botón clickeado
-        const button = target.closest("button");
+        const button = e.target.closest("button");
         if (!button) return;
 
-        // Encontrar la fila
         const row = button.closest("tr");
-        if (!row) return;
-
-        // Obtener el ID del socio del dataset
-        const socioId = row.dataset.socioId;
+        const socioId = row?.dataset.socioId;
         if (!socioId) return;
 
-        // Determinar la acción basada en la clase o ícono
         if (
           button.querySelector(".fa-edit") ||
           button.classList.contains("btn-edit")
@@ -74,46 +83,16 @@ class SociosManager extends BaseManager {
     }
   }
 
-  async cargarSocios() {
-    this.mostrarLoading(true);
-    try {
-      this.socios = await socioService.obtenerSocios();
-      this.filtrados = [...this.socios];
-      this.actualizarEstadisticas();
-      this.renderizarTabla();
-    } catch (error) {
-      this.mostrarError("Error al cargar los socios: " + error.message);
-    } finally {
-      this.mostrarLoading(false);
-    }
+  filtrarSocios(termino = "", estado = "") {
+    this.filtrados = this.filterManager.applyFilter(
+      this.socios,
+      termino,
+      estado
+    );
+    this.renderTable();
   }
 
-  filtrarSocios(terminoBusqueda = "", filtroEstado = "") {
-    let filtrados = this.socios;
-
-    if (terminoBusqueda) {
-      const termino = terminoBusqueda.toLowerCase();
-      filtrados = filtrados.filter(
-        (socio) =>
-          socio.nombre.toLowerCase().includes(termino) ||
-          socio.dni.toLowerCase().includes(termino) ||
-          socio.numero_socio.toLowerCase().includes(termino)
-      );
-    }
-
-    if (filtroEstado) {
-      filtrados = filtrados.filter(
-        (socio) =>
-          (filtroEstado === "activo" && socio.activo) ||
-          (filtroEstado === "inactivo" && !socio.activo)
-      );
-    }
-
-    this.filtrados = filtrados;
-    this.renderizarTabla();
-  }
-
-  renderizarTabla() {
+  renderTable() {
     this.tableManager.renderTable(this.filtrados, (socio) =>
       this.renderFila(socio)
     );
@@ -186,19 +165,9 @@ class SociosManager extends BaseManager {
 
   async registrarNuevoSocio(formData) {
     try {
-      // Validar campos requeridos
-      if (!formData.nombre || formData.nombre.trim() === "") {
-        this.mostrarError("El nombre es obligatorio");
-        return;
-      }
+      if (!this.validarCamposRequeridos(formData, ["nombre", "dni"])) return;
 
-      if (!formData.dni || formData.dni.trim() === "") {
-        this.mostrarError("El DNI es obligatorio");
-        return;
-      }
-
-      // Verificar si el DNI ya existe
-      const dniExistente = await socioService.verificarDNIExistente(
+      const dniExistente = await servicioSingleton.verificarDNIExistente(
         formData.dni
       );
       if (dniExistente) {
@@ -206,31 +175,22 @@ class SociosManager extends BaseManager {
         return;
       }
 
-      // Preparar datos para enviar
-      const socioData = {
-        nombre: formData.nombre,
-        dni: formData.dni,
-        email: formData.email || null,
-        telefono: formData.telefono || null,
-      };
+      const socioData = this.prepararDatosSocio(formData);
 
       await this.formManager.submitForm(async () => {
-        await socioService.crearSocio(socioData);
+        await servicioSingleton.crearSocio(socioData);
         this.mostrarExito("Socio registrado exitosamente");
-        await this.cargarSocios();
+        await this.loadData();
       }, formData);
     } catch (error) {
-      console.error("Error completo:", error);
       this.mostrarError("Error al registrar el socio: " + error.message);
     }
   }
 
   async editarSocio(socioId) {
     try {
-      // 1. Obtener los datos actuales del socio
-      const socio = await socioService.obtenerSocioPorId(socioId);
+      const socio = await servicioSingleton.obtenerSocioPorId(socioId);
 
-      // 2. Llenar el formulario de edición
       this.editFormManager.fillForm({
         nombre: socio.nombre,
         dni: socio.dni,
@@ -240,7 +200,6 @@ class SociosManager extends BaseManager {
         socioId: socio.id,
       });
 
-      // 3. Mostrar el modal de edición
       const editModal = new bootstrap.Modal(
         document.getElementById("editarSocioModal")
       );
@@ -254,16 +213,7 @@ class SociosManager extends BaseManager {
 
   async guardarEdicionSocio(formData) {
     try {
-      // 1. Validar campos requeridos
-      if (!formData.nombre || formData.nombre.trim() === "") {
-        this.mostrarError("El nombre es obligatorio");
-        return;
-      }
-
-      if (!formData.dni || formData.dni.trim() === "") {
-        this.mostrarError("El DNI es obligatorio");
-        return;
-      }
+      if (!this.validarCamposRequeridos(formData, ["nombre", "dni"])) return;
 
       const socioId = formData.socioId;
       if (!socioId) {
@@ -271,47 +221,58 @@ class SociosManager extends BaseManager {
         return;
       }
 
-      // 2. Preparar datos para actualizar
-      const socioData = {
-        nombre: formData.nombre,
-        dni: formData.dni,
-        email: formData.email || null,
-        telefono: formData.telefono || null,
-        activo: formData.activo || false,
-      };
+      const socioData = this.prepararDatosSocio(formData);
 
       await this.editFormManager.submitForm(async () => {
-        await socioService.actualizarSocio(socioId, socioData);
+        await servicioSingleton.actualizarSocio(socioId, socioData);
         this.mostrarExito("Socio actualizado exitosamente");
-        await this.cargarSocios();
+        await this.loadData();
       }, formData);
     } catch (error) {
-      console.error("Error completo:", error);
       this.mostrarError("Error al actualizar el socio: " + error.message);
     }
   }
 
   async eliminarSocio(socioId) {
     if (
-      !this.confirmarAccion(
+      !(await this.confirmarAccion(
         "¿Estás seguro de que quieres eliminar este socio? Esta acción no se puede deshacer."
-      )
-    ) {
+      ))
+    )
       return;
-    }
 
     try {
-      await socioService.eliminarSocio(socioId);
+      await servicioSingleton.eliminarSocio(socioId);
       this.mostrarExito("Socio eliminado exitosamente");
-      await this.cargarSocios();
+      await this.loadData();
     } catch (error) {
       this.mostrarError("Error al eliminar el socio: " + error.message);
     }
   }
+
+  // Métodos helper
+  validarCamposRequeridos(formData, campos) {
+    for (const campo of campos) {
+      if (!formData[campo]?.trim()) {
+        this.mostrarError(`El ${campo} es obligatorio`);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  prepararDatosSocio(formData) {
+    return {
+      nombre: formData.nombre,
+      dni: formData.dni,
+      email: formData.email || null,
+      telefono: formData.telefono || null,
+      activo: formData.activo || false,
+    };
+  }
 }
 
 // Inicializar
-let sociosManager;
 document.addEventListener("DOMContentLoaded", () => {
-  sociosManager = new SociosManager();
+  new SociosManager().init();
 });

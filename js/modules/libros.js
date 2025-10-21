@@ -1,8 +1,9 @@
-// libros.js - VERSIÓN CORREGIDA
-import { libroService } from "../services/libro-service.js";
+// libros.js - VERSIÓN FINAL CORREGIDA
+import { servicioSingleton } from "../services/servicios-module.js";
 import { BaseManager } from "../components/BaseManager.js";
 import { TableManager } from "../components/TableManager.js";
 import { FormManager } from "../components/FormManager.js";
+import { FilterStrategy, FilterManager } from "../components/FilterStrategy.js";
 
 class LibrosManager extends BaseManager {
   constructor() {
@@ -15,35 +16,60 @@ class LibrosManager extends BaseManager {
       "editarLibroForm",
       "editarLibroModal"
     );
-    this.init();
+
+    // Strategy Pattern para filtros
+    this.filterManager = new FilterManager(
+      new FilterStrategy.COMPOSITE([
+        new FilterStrategy.TEXT(["titulo", "autor", "isbn"]),
+        new FilterStrategy.STATUS("estado"),
+        new FilterStrategy.TEXT(["categoria"]),
+      ])
+    );
   }
 
   async init() {
-    if (!(await this.checkAuthentication())) return;
+    await super.init(); // Llama al init del BaseManager
+  }
 
-    this.updateUserInfo();
-    this.setupEventListeners();
-    await this.cargarLibros();
+  async loadData() {
+    this.mostrarLoading(true);
+    try {
+      this.libros = await servicioSingleton.obtenerLibros();
+      this.filtrados = [...this.libros];
+      this.actualizarEstadisticas();
+      this.renderTable();
+    } catch (error) {
+      this.mostrarError("Error al cargar los libros: " + error.message);
+    } finally {
+      this.mostrarLoading(false);
+    }
   }
 
   setupEventListeners() {
-    this.setupLogoutListener();
+    super.setupEventListeners();
     this.formManager.setupForm((data) => this.registrarNuevoLibro(data));
     this.editFormManager.setupForm((data) => this.guardarEdicionLibro(data));
 
     this.setupSearchInput("searchInput", (value) => this.filtrarLibros(value));
     this.setupFilterSelect("filterStatus", (value) =>
-      this.filtrarLibros(document.getElementById("searchInput").value, value)
-    );
-    this.setupFilterSelect("filterCategory", (value) =>
       this.filtrarLibros(
         document.getElementById("searchInput").value,
-        document.getElementById("filterStatus").value,
-        value
+        value,
+        document.getElementById("filterCategory")?.value
       )
     );
 
-    // Event delegation para los botones de la tabla
+    const filterCategory = document.getElementById("filterCategory");
+    if (filterCategory) {
+      filterCategory.addEventListener("change", (e) =>
+        this.filtrarLibros(
+          document.getElementById("searchInput").value,
+          document.getElementById("filterStatus")?.value,
+          e.target.value
+        )
+      );
+    }
+
     this.setupTableEventListeners();
   }
 
@@ -51,21 +77,13 @@ class LibrosManager extends BaseManager {
     const tbody = document.getElementById("librosTableBody");
     if (tbody) {
       tbody.addEventListener("click", (e) => {
-        const target = e.target;
-
-        // Encontrar el boton clickeado
-        const button = target.closest("button");
+        const button = e.target.closest("button");
         if (!button) return;
 
-        // Encontrar la fila
         const row = button.closest("tr");
-        if (!row) return;
-
-        // Obtener el ID del libro del dataset
-        const libroId = row.dataset.libroId;
+        const libroId = row?.dataset.libroId;
         if (!libroId) return;
 
-        // Determinar la accion basada en la clase o icono
         if (
           button.querySelector(".fa-edit") ||
           button.classList.contains("btn-editar")
@@ -81,45 +99,17 @@ class LibrosManager extends BaseManager {
     }
   }
 
-  async cargarLibros() {
-    this.mostrarLoading(true);
-    try {
-      this.libros = await libroService.obtenerLibros();
-      this.filtrados = [...this.libros];
-      this.actualizarEstadisticas();
-      this.renderizarTabla();
-    } catch (error) {
-      this.mostrarError("Error al cargar los libros: " + error.message);
-    } finally {
-      this.mostrarLoading(false);
-    }
+  filtrarLibros(termino = "", estado = "", categoria = "") {
+    this.filtrados = this.filterManager.applyFilter(
+      this.libros,
+      termino,
+      estado,
+      categoria
+    );
+    this.renderTable();
   }
 
-  filtrarLibros(terminoBusqueda = "", filtroEstado = "", filtroCategoria = "") {
-    let filtrados = this.libros;
-
-    if (terminoBusqueda) {
-      const termino = terminoBusqueda.toLowerCase();
-      filtrados = filtrados.filter(
-        (libro) =>
-          libro.titulo.toLowerCase().includes(termino) ||
-          libro.autor.toLowerCase().includes(termino) ||
-          (libro.isbn && libro.isbn.toLowerCase().includes(termino))
-      );
-    }
-
-    if (filtroEstado)
-      filtrados = filtrados.filter((libro) => libro.estado === filtroEstado);
-    if (filtroCategoria)
-      filtrados = filtrados.filter(
-        (libro) => libro.categoria === filtroCategoria
-      );
-
-    this.filtrados = filtrados;
-    this.renderizarTabla();
-  }
-
-  renderizarTabla() {
+  renderTable() {
     this.tableManager.renderTable(this.filtrados, (libro) =>
       this.renderFila(libro)
     );
@@ -198,53 +188,30 @@ class LibrosManager extends BaseManager {
 
   async registrarNuevoLibro(formData) {
     try {
-      // Validar campos requeridos
-      if (!formData.titulo || formData.titulo.trim() === "") {
-        this.mostrarError("El título es obligatorio");
-        return;
-      }
+      if (!this.validarCamposRequeridos(formData, ["titulo", "autor"])) return;
 
-      if (!formData.autor || formData.autor.trim() === "") {
-        this.mostrarError("El autor es obligatorio");
-        return;
-      }
-
-      // Preparar datos para enviar
-      const libroData = {
-        titulo: formData.titulo,
-        autor: formData.autor,
-        isbn: formData.isbn || null,
-        categoria: formData.categoria || null,
-        fecha_publicacion: formData.fecha_publicacion || null,
-        descripcion: formData.descripcion || null,
-        portada_url: formData.portada_url || null,
-        estado: "disponible",
-      };
+      const libroData = this.prepararDatosLibro(formData);
 
       await this.formManager.submitForm(async () => {
-        await libroService.crearLibro(libroData);
+        await servicioSingleton.crearLibro(libroData);
         this.mostrarExito("Libro registrado exitosamente");
-        await this.cargarLibros();
+        await this.loadData();
       }, formData);
     } catch (error) {
-      console.error("Error completo:", error);
       this.mostrarError("Error al registrar el libro: " + error.message);
     }
   }
 
   async editarLibro(libroId) {
     try {
-      // Obtener los datos actuales del libro
-      const libro = await libroService.obtenerLibroPorId(libroId);
+      const libro = await servicioSingleton.obtenerLibroPorId(libroId);
 
-      // Formatear la fecha para el input type="date"
       let fechaPublicacion = "";
       if (libro.fecha_publicacion) {
         const fecha = new Date(libro.fecha_publicacion);
         fechaPublicacion = fecha.toISOString().split("T")[0];
       }
 
-      // Llenar el formulario de edicion
       this.editFormManager.fillForm({
         titulo: libro.titulo,
         autor: libro.autor,
@@ -253,16 +220,14 @@ class LibrosManager extends BaseManager {
         fecha_publicacion: fechaPublicacion,
         descripcion: libro.descripcion || "",
         portada_url: libro.portada_url || "",
-        libroId: libro.id, // Esto se enviará en el formData
+        libroId: libro.id,
       });
 
-      // Mostrar el modal de edición
       const editModal = new bootstrap.Modal(
         document.getElementById("editarLibroModal")
       );
       editModal.show();
     } catch (error) {
-      console.error("Error al cargar libro:", error);
       this.mostrarError(
         "Error al cargar los datos del libro para edición: " + error.message
       );
@@ -271,42 +236,22 @@ class LibrosManager extends BaseManager {
 
   async guardarEdicionLibro(formData) {
     try {
-      // Validar campos requeridos
-      if (!formData.titulo || formData.titulo.trim() === "") {
-        this.mostrarError("El título es obligatorio");
-        return;
-      }
-
-      if (!formData.autor || formData.autor.trim() === "") {
-        this.mostrarError("El autor es obligatorio");
-        return;
-      }
+      if (!this.validarCamposRequeridos(formData, ["titulo", "autor"])) return;
 
       const libroId = formData.libroId;
-
       if (!libroId) {
         this.mostrarError("ID de libro no encontrado para la edición.");
         return;
       }
 
-      // Preparar datos para actualizar
-      const libroData = {
-        titulo: formData.titulo,
-        autor: formData.autor,
-        isbn: formData.isbn || null,
-        categoria: formData.categoria || null,
-        fecha_publicacion: formData.fecha_publicacion || null,
-        descripcion: formData.descripcion || null,
-        portada_url: formData.portada_url || null,
-      };
+      const libroData = this.prepararDatosLibro(formData);
 
       await this.editFormManager.submitForm(async () => {
-        await libroService.actualizarLibro(libroId, libroData);
+        await servicioSingleton.actualizarLibro(libroId, libroData);
         this.mostrarExito("Libro actualizado exitosamente");
-        await this.cargarLibros();
+        await this.loadData();
       }, formData);
     } catch (error) {
-      console.error("Error completo:", error);
       this.mostrarError("Error al actualizar el libro: " + error.message);
     }
   }
@@ -320,18 +265,38 @@ class LibrosManager extends BaseManager {
       return;
 
     try {
-      await libroService.eliminarLibro(libroId);
+      await servicioSingleton.eliminarLibro(libroId);
       this.mostrarExito("Libro eliminado exitosamente");
-      await this.cargarLibros();
+      await this.loadData();
     } catch (error) {
-      console.error("Error al eliminar:", error);
       this.mostrarError("Error al eliminar el libro: " + error.message);
     }
   }
+
+  validarCamposRequeridos(formData, campos) {
+    for (const campo of campos) {
+      if (!formData[campo]?.trim()) {
+        this.mostrarError(`El ${campo} es obligatorio`);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  prepararDatosLibro(formData) {
+    return {
+      titulo: formData.titulo,
+      autor: formData.autor,
+      isbn: formData.isbn || null,
+      categoria: formData.categoria || null,
+      fecha_publicacion: formData.fecha_publicacion || null,
+      descripcion: formData.descripcion || null,
+      portada_url: formData.portada_url || null,
+    };
+  }
 }
 
-// Inicializar
-let librosManager;
+// Inicializar 
 document.addEventListener("DOMContentLoaded", () => {
-  librosManager = new LibrosManager();
+  new LibrosManager().init();
 });
