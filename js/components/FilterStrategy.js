@@ -1,4 +1,3 @@
-// FilterStrategy.js
 export class FilterStrategy {
   static TEXT = class {
     constructor(fields) {

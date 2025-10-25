@@ -1,4 +1,3 @@
-// libros.js - VERSIÓN FINAL CORREGIDA
 import { servicioSingleton } from "../services/servicios-module.js";
 import { BaseManager } from "../components/BaseManager.js";
 import { TableManager } from "../components/TableManager.js";

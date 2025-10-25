@@ -1,4 +1,3 @@
-// servicios-module.js
 import { supabase } from "./supabase.js";
 
 class ServiceSingleton {
@@ -133,6 +132,50 @@ class ServiceSingleton {
       .eq("dni", dni)
       .single();
     return data !== null;
+  }
+
+  // Métodos específicos para prestamos
+  async obtenerPrestamosActivos() {
+    const { data, error } = await supabase
+      .from("prestamos")
+      .select(
+        `
+      *,
+      libros (*),
+      socios (*)
+    `
+      )
+      .eq("estado", "activo")
+      .order("fecha_devolucion");
+
+    if (error) throw error;
+    return data;
+  }
+
+  async registrarPrestamo(prestamoData) {
+    const { data, error } = await supabase
+      .from("prestamos")
+      .insert([prestamoData])
+      .select();
+
+    if (error) throw error;
+    return data[0];
+  }
+
+  async registrarDevolucion(prestamoId, tieneDano = false, montoMulta = 0) {
+    const { data, error } = await supabase
+      .from("prestamos")
+      .update({
+        estado: "devuelto",
+        fecha_devolucion_real: new Date().toISOString().split("T")[0],
+        tiene_dano: tieneDano,
+        monto_multa: montoMulta,
+      })
+      .eq("id", prestamoId)
+      .select();
+
+    if (error) throw error;
+    return data[0];
   }
 }
 

@@ -2,6 +2,7 @@ export class FormManager {
   constructor(formId, modalId = null) {
     this.formId = formId;
     this.modalId = modalId;
+    this.isSubmitting = false;
   }
 
   setupForm(submitCallback) {
@@ -10,7 +11,16 @@ export class FormManager {
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+
+      // Prevenir doble envío
+      if (this.isSubmitting) {
+        console.log("Formulario ya en proceso de envío");
+        return;
+      }
+
+      this.isSubmitting = true;
       await submitCallback(this.getFormData(form));
+      this.isSubmitting = false;
     });
 
     if (this.modalId) {
@@ -18,6 +28,7 @@ export class FormManager {
       if (modal) {
         modal.addEventListener("hidden.bs.modal", () => {
           form.reset();
+          this.isSubmitting = false; // Resetear estado al cerrar modal
         });
       }
     }
