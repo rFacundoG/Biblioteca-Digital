@@ -67,6 +67,10 @@ class SociosManager extends BaseManager {
         const socioId = row?.dataset.socioId;
         if (!socioId) return;
 
+        if (button.classList.contains("btn-multas")) {
+          this.verMultasSocio(socioId);
+        }
+
         if (
           button.querySelector(".fa-edit") ||
           button.classList.contains("btn-edit")
@@ -121,6 +125,9 @@ class SociosManager extends BaseManager {
       }</td>
       <td>
         <div class="btn-group btn-group-sm">
+          <button class="btn btn-outline-primary btn-action btn-multas" title="Ver Multas">
+            <i class="fas fa-money-bill-wave"></i>
+          </button>
           <button class="btn btn-outline-primary btn-action btn-edit" title="Editar">
             <i class="fas fa-edit"></i>
           </button>
@@ -247,6 +254,109 @@ class SociosManager extends BaseManager {
     } catch (error) {
       this.mostrarError("Error al eliminar el socio: " + error.message);
     }
+  }
+
+  async verMultasSocio(socioId) {
+    try {
+      const prestamosConMultas =
+        await servicioSingleton.obtenerPrestamosConMultas(socioId);
+
+      const totalAdeudado = prestamosConMultas.reduce((total, prestamo) => {
+        return total + (parseFloat(prestamo.monto_multa) || 0);
+      }, 0);
+
+      this.mostrarDetallesMultas(prestamosConMultas, totalAdeudado);
+    } catch (error) {
+      this.mostrarError(
+        "Error al cargar las multas del socio: " + error.message
+      );
+    }
+  }
+
+  mostrarDetallesMultas(prestamosConMultas, totalAdeudado) {
+    // Crear contenido del modal
+    let contenido = `
+    <div class="modal-header">
+      <h5 class="modal-title">Detalle de Multas del Socio</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-warning">
+        <strong>Total adeudado: $${totalAdeudado.toFixed(2)}</strong>
+      </div>
+  `;
+
+    if (prestamosConMultas.length === 0) {
+      contenido += `
+      <div class="text-center text-muted py-3">
+        <i class="fas fa-check-circle fa-2x mb-2"></i>
+        <p>El socio no tiene multas pendientes</p>
+      </div>
+    `;
+    } else {
+      contenido += `
+      <h6>Préstamos con multas:</h6>
+      <div class="table-responsive">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Libro</th>
+              <th>Fecha Préstamo</th>
+              <th>Multa</th>
+              <th>Daño</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+      prestamosConMultas.forEach((prestamo) => {
+        contenido += `
+        <tr>
+          <td>${prestamo.libros?.titulo || "N/A"}</td>
+          <td>${new Date(prestamo.fecha_inicio).toLocaleDateString(
+            "es-ES"
+          )}</td>
+          <td>$${(parseFloat(prestamo.monto_multa) || 0).toFixed(2)}</td>
+          <td>${prestamo.tiene_dano ? "Sí" : "No"}</td>
+        </tr>
+      `;
+      });
+
+      contenido += `
+          </tbody>
+        </table>
+      </div>
+    `;
+    }
+
+    contenido += `
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+    </div>
+  `;
+
+    // Crear o actualizar modal
+    let modal = document.getElementById("multasModal");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "multasModal";
+      modal.className = "modal fade";
+      modal.innerHTML = `
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          ${contenido}
+        </div>
+      </div>
+    `;
+      document.body.appendChild(modal);
+    } else {
+      modal.querySelector(".modal-content").innerHTML = contenido;
+    }
+
+    // Mostrar modal
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
   }
 
   // Métodos helper

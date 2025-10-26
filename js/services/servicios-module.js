@@ -177,6 +177,23 @@ class ServiceSingleton {
     if (error) throw error;
     return data[0];
   }
+
+  async obtenerPrestamosConMultas(socioId) {
+    const { data, error } = await supabase
+      .from("prestamos")
+      .select(
+        `
+      *,
+      libros (*)
+    `
+      )
+      .eq("socio_id", socioId)
+      .or("monto_multa.gt.0,tiene_dano.eq.true")
+      .order("fecha_inicio", { ascending: false });
+
+    if (error) throw error;
+    return data;
+  }
 }
 
 export const servicioSingleton = new ServiceSingleton();

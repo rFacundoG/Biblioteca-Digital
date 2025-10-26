@@ -6,3 +6,7 @@
 ## Seguridad
 - Se recomienda comprobar la versión manualmente
 - Monitorear los avisos de seguridad para cada biblioteca.
+
+## Para subir imagenes
+- https://imglink.io/
+- Utiliza el que diga "Direct link:"

@@ -129,13 +129,14 @@
     background-color: #c82333;
 }
 
-.btn-view {
+.btn-multas {
     background-color: #17a2b8;
     color: white;
 }
 
-.btn-view:hover {
+.btn-multas:hover {
     background-color: #138496;
+    color: white;
 }
 
 /* Estados de carga y vacío */
