@@ -38,11 +38,16 @@ class PrestamosManager extends BaseManager {
   }
 
   async loadData() {
-    await Promise.all([
-      this.cargarPrestamosActivos(),
-      this.cargarSocios(),
-      this.cargarLibrosDisponibles(),
-    ]);
+    this.mostrarLoading(true);
+    try {
+      await Promise.all([
+        this.cargarPrestamosActivos(),
+        this.cargarSocios(),
+        this.cargarLibrosDisponibles(),
+      ]);
+    } finally {
+      this.mostrarLoading(false);
+    }
   }
 
   setupEventListeners() {
@@ -244,7 +249,7 @@ class PrestamosManager extends BaseManager {
         return;
 
       // Validar fechas
-      if (!this.validarFechas()) return;
+      if (!this.prestamoFormManager.validarFechas()) return;
 
       const libroId = parseInt(formData.selectLibro);
       const socioId = parseInt(formData.selectSocio);

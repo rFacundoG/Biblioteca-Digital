@@ -1,3 +1,5 @@
+import { PrestamoUtils } from "./prestamoUtils.js";
+
 export class PrestamoRender {
   constructor(tableManager) {
     this.tableManager = tableManager;

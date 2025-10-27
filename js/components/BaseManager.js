@@ -71,10 +71,23 @@ export class BaseManager {
     }
   }
 
-  mostrarLoading(mostrar, loadingId = "loadingState") {
-    const loading = document.getElementById(loadingId);
-    if (loading) {
-      loading.classList.toggle("d-none", !mostrar);
+  mostrarLoading(mostrar) {
+    const loadingState = document.getElementById("loadingState");
+    const emptyActivos = document.getElementById("emptyActivos");
+    const prestamosActivosBody = document.getElementById(
+      "prestamosActivosBody"
+    );
+
+    if (loadingState) {
+      loadingState.classList.toggle("d-none", !mostrar);
+    }
+
+    if (prestamosActivosBody) {
+      prestamosActivosBody.classList.toggle("d-none", mostrar);
+    }
+
+    if (emptyActivos && mostrar) {
+      emptyActivos.classList.add("d-none");
     }
   }
 

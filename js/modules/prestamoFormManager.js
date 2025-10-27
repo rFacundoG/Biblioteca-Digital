@@ -53,11 +53,10 @@ export class PrestamoFormManager {
     const fechaPrestamo = document.getElementById("fechaPrestamo").value;
     const fechaDevolucion = document.getElementById("fechaDevolucion").value;
 
-    const [resumenSocio, resumenLibro, resumenFechas, resumenDias] = [
+    const [resumenSocio, resumenLibro, resumenFechas] = [
       "resumenSocio",
       "resumenLibro",
       "resumenFechas",
-      "resumenDias",
     ].map((id) => document.getElementById(id));
 
     if (socioId && libroId && fechaPrestamo && fechaDevolucion) {
@@ -65,20 +64,14 @@ export class PrestamoFormManager {
       const libro = librosDisponibles.find((l) => l.id == libroId);
       const fechaP = new Date(fechaPrestamo);
       const fechaD = new Date(fechaDevolucion);
-      const diffDays = Math.ceil((fechaD - fechaP) / (1000 * 60 * 60 * 24));
 
       resumenSocio.textContent = `Socio: ${socio.nombre}`;
       resumenLibro.textContent = `Libro: ${libro.titulo}`;
       resumenFechas.textContent = `Préstamo: ${fechaP.toLocaleDateString(
         "es-ES"
       )} | Devolución: ${fechaD.toLocaleDateString("es-ES")}`;
-      resumenDias.textContent = `Duración: ${diffDays} día${
-        diffDays !== 1 ? "s" : ""
-      }`;
-      resumenDias.className =
-        diffDays >= 7 ? "mb-0 text-success" : "mb-0 text-warning";
     } else {
-      [resumenSocio, resumenLibro, resumenFechas, resumenDias].forEach(
+      [resumenSocio, resumenLibro, resumenFechas].forEach(
         (el) => (el.textContent = "")
       );
       resumenSocio.textContent = "Selecciona un socio y un libro";
