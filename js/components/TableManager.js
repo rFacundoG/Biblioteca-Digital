@@ -1,9 +1,11 @@
+// Maneja la renderizacion y gestion de tablas
 export class TableManager {
   constructor(tableId, emptyStateId) {
-    this.tableId = tableId;
-    this.emptyStateId = emptyStateId;
+    this.tableId = tableId; // ID del tbody de la tabla
+    this.emptyStateId = emptyStateId; // ID del estado vacio
   }
 
+  // Renderiza la tabla con los datos proporcionados
   renderTable(data, renderRowCallback) {
     const tbody = document.getElementById(this.tableId);
     const table = document.getElementById(this.tableId)?.closest("table");
@@ -11,18 +13,22 @@ export class TableManager {
 
     if (!tbody || !empty) return;
 
+    // Muestra estado vacio si no hay datos
     if (data.length === 0) {
       table?.classList.add("d-none");
       empty.classList.remove("d-none");
       return;
     }
 
+    // Muestra la tabla con datos
     table?.classList.remove("d-none");
     empty.classList.add("d-none");
 
+    // Genera las filas usando el callback proporcionado
     tbody.innerHTML = data.map(renderRowCallback).join("");
   }
 
+  // Crea un boton de accion para las tablas
   createActionButton(icon, title, onClick, className = "", disabled = false) {
     const safeOnClick = onClick.replace(/'/g, "\\'");
     return `
@@ -35,8 +41,9 @@ export class TableManager {
     `;
   }
 
+  // Crea un badge con diferentes estilos
   createBadge(text, type = "secondary") {
-    // Clases corregidas para mejor contraste
+    // Define clases para diferentes tipos de badges
     const classes = {
       // Estados de libros
       disponible: "bg-success text-white",
@@ -59,14 +66,14 @@ export class TableManager {
     }">${text}</span>`;
   }
 
-  // Método específico para estados de socios
+  // Crea un badge especifico para estados de socios
   createSocioBadge(activo) {
     return activo
       ? '<span class="badge bg-success text-white">Activo</span>'
       : '<span class="badge bg-secondary text-white">Inactivo</span>';
   }
 
-  // Método específico para estados de libros
+  // Crea un badge especifico para estados de libros
   createLibroBadge(estado) {
     const clases = {
       disponible: "bg-success text-white",
@@ -86,6 +93,7 @@ export class TableManager {
     return `<span class="badge ${clase}">${texto}</span>`;
   }
 
+  // Crea opciones para elementos select
   crearOpcionesSelect(opciones, valorSeleccionado = "") {
     return opciones
       .map(

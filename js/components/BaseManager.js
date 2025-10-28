@@ -1,13 +1,14 @@
 import { AuthService } from "../auth/auth.js";
 
+// Clase base que proporciona funcionalidades comunes para todos los managers
 export class BaseManager {
   constructor() {
-    this.currentUser = null;
-    this.data = [];
-    this.filteredData = [];
+    this.currentUser = null; // Usuario actualmente logueado
+    this.data = []; // Datos cargados
+    this.filteredData = []; // Datos despues de aplicar filtros
   }
 
-  // Método de inicializacion
+  // Inicializa el manager con autenticacion y carga de datos
   async init() {
     if (!(await this.checkAuthentication())) return;
 
@@ -16,6 +17,7 @@ export class BaseManager {
     await this.loadData();
   }
 
+  // Verifica si el usuario esta autenticado
   async checkAuthentication(redirectUrl = "../index.html") {
     const estaLogueado = await AuthService.estaLogueado();
     if (!estaLogueado) {
@@ -27,6 +29,7 @@ export class BaseManager {
     return true;
   }
 
+  // Configura el listener para el boton de logout
   setupLogoutListener(btnId = "logoutBtn") {
     const logoutBtn = document.getElementById(btnId);
     if (logoutBtn) {
@@ -37,22 +40,26 @@ export class BaseManager {
     }
   }
 
+  // Maneja el proceso de logout
   async handleLogout() {
     if (await AuthService.logout()) {
       window.location.href = "../index.html";
     }
   }
 
+  // Actualiza la informacion del usuario en la interfaz
   updateUserInfo(elementId = "userName") {
     if (this.currentUser && document.getElementById(elementId)) {
       document.getElementById(elementId).textContent = this.currentUser.email;
     }
   }
 
+  // Configura los event listeners basicos
   setupEventListeners() {
     this.setupLogoutListener();
   }
 
+  // Configura un input de busqueda con debounce
   setupSearchInput(inputId, callback, delay = 300) {
     const input = document.getElementById(inputId);
     if (!input) return;
@@ -64,6 +71,7 @@ export class BaseManager {
     });
   }
 
+  // Configura un select para filtros
   setupFilterSelect(selectId, callback) {
     const select = document.getElementById(selectId);
     if (select) {
@@ -71,6 +79,7 @@ export class BaseManager {
     }
   }
 
+  // Muestra u oculta el estado de carga
   mostrarLoading(mostrar) {
     const loadingState = document.getElementById("loadingState");
     const emptyActivos = document.getElementById("emptyActivos");
@@ -91,14 +100,17 @@ export class BaseManager {
     }
   }
 
+  // Muestra un mensaje de exito
   mostrarExito(mensaje) {
     this.showNotification(mensaje, "success");
   }
 
+  // Muestra un mensaje de error
   mostrarError(mensaje) {
     this.showNotification(mensaje, "error");
   }
 
+  // Muestra una notificacion temporal
   showNotification(mensaje, tipo = "info") {
     const alertClass = tipo === "success" ? "alert-success" : "alert-danger";
     const alert = document.createElement("div");
@@ -111,17 +123,19 @@ export class BaseManager {
     `;
     document.body.appendChild(alert);
 
+    // Remueve la alerta automaticamente despues de 5 segundos
     setTimeout(() => {
       if (alert.parentNode) alert.parentNode.removeChild(alert);
     }, 5000);
   }
 
+  // Muestra un dialogo de confirmacion
   confirmarAccion(mensaje) {
     return confirm(mensaje);
   }
 
-  // Método abstracto - debe ser implementado por las clases hijas
+  // Metodo que debe ser implementado por las clases hijas
   async loadData() {
-    throw new Error("Método loadData debe ser implementado por la clase hija");
+    throw new Error("Metodo loadData debe ser implementado por la clase hija");
   }
 }

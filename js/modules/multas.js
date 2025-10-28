@@ -1,37 +1,43 @@
+// Servicio para calcular y gestionar multas por retrasos y danos
 export class MultasService {
   constructor() {
-    this.tasaMultaDiaria = 10; // $10 por día de retraso
-    this.multaPorDano = 50; // $50 por daño al libro
-    this.diasGracia = 0; // 0 días de gracia
+    this.tasaMultaDiaria = 10; // $10 por cada dia de retraso
+    this.multaPorDano = 50; // $50 por dano al libro
+    this.diasGracia = 0; // No hay dias de gracia
   }
 
-  // Calcular días de retraso
+  // Calcula cuantos dias de retraso tiene un prestamo
   calcularDiasRetraso(fechaDevolucionEsperada) {
     const hoy = new Date();
     const fechaDev = new Date(fechaDevolucionEsperada);
+    // Calcula la diferencia en milisegundos entre hoy y la fecha esperada
     const diffTime = hoy - fechaDev;
+    // Convierte milisegundos a dias y asegura que no sea negativo
     return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
   }
 
-  // Calcular monto de multa por retraso
+  // Calcula el monto de multa solo por retraso
   calcularMultaRetraso(fechaDevolucionEsperada) {
     const diasRetraso = this.calcularDiasRetraso(fechaDevolucionEsperada);
+    // Multiplica dias de retraso por la tasa diaria
     return diasRetraso * this.tasaMultaDiaria;
   }
 
-  // Calcular multa total (retraso + daño)
+  // Calcula la multa total (retraso + dano)
   calcularMultaTotal(fechaDevolucionEsperada, tieneDano = false) {
     const multaRetraso = this.calcularMultaRetraso(fechaDevolucionEsperada);
+    // Agrega multa por dano si aplica
     const multaDano = tieneDano ? this.multaPorDano : 0;
+    // Suma ambos conceptos
     return multaRetraso + multaDano;
   }
 
-  // Verificar si tiene multa
+  // Verifica si un prestamo tiene multa
   tieneMulta(fechaDevolucionEsperada) {
     return this.calcularDiasRetraso(fechaDevolucionEsperada) > 0;
   }
 
-  // Obtener información completa de multa
+  // Obtiene informacion detallada sobre la multa
   obtenerInfoMulta(fechaDevolucionEsperada, tieneDano = false) {
     const diasRetraso = this.calcularDiasRetraso(fechaDevolucionEsperada);
     const multaRetraso = this.calcularMultaRetraso(fechaDevolucionEsperada);
@@ -51,10 +57,11 @@ export class MultasService {
     };
   }
 
-  // Formatear información de multa para mostrar
+  // Formatea la informacion de multa para mostrar al usuario
   formatearInfoMulta(fechaDevolucionEsperada, tieneDano = false) {
     const info = this.obtenerInfoMulta(fechaDevolucionEsperada, tieneDano);
 
+    // Si no hay multa
     if (!info.tieneMulta) {
       return {
         texto: "Sin multa",
@@ -64,14 +71,15 @@ export class MultasService {
       };
     }
 
+    // Construye el desglose de la multa
     const desglose = [];
     if (info.diasRetraso > 0) {
       desglose.push(
-        `Retraso: ${info.diasRetraso} día(s) - $${info.multaRetraso}`
+        `Retraso: ${info.diasRetraso} dia(s) - $${info.multaRetraso}`
       );
     }
     if (info.tieneDano) {
-      desglose.push(`Daño: $${info.multaDano}`);
+      desglose.push(`Dano: $${info.multaDano}`);
     }
 
     return {
@@ -83,4 +91,5 @@ export class MultasService {
   }
 }
 
+// Exporta una instancia unica del servicio
 export const multasService = new MultasService();

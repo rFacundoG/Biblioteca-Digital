@@ -1,10 +1,12 @@
+// Maneja la gestion de formularios y modales
 export class FormManager {
   constructor(formId, modalId = null) {
-    this.formId = formId;
-    this.modalId = modalId;
-    this.isSubmitting = false;
+    this.formId = formId; // ID del formulario a manejar
+    this.modalId = modalId; // ID del modal
+    this.isSubmitting = false; // Evita envios multiples
   }
 
+  // Configura el evento de submit del formulario
   setupForm(submitCallback) {
     const form = document.getElementById(this.formId);
     if (!form) return;
@@ -12,9 +14,9 @@ export class FormManager {
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      // Prevenir doble envío
+      // Previene el doble envio
       if (this.isSubmitting) {
-        console.log("Formulario ya en proceso de envío");
+        console.log("Formulario ya en proceso de envio");
         return;
       }
 
@@ -23,27 +25,28 @@ export class FormManager {
       this.isSubmitting = false;
     });
 
+    // Limpia el formulario cuando se cierra el modal
     if (this.modalId) {
       const modal = document.getElementById(this.modalId);
       if (modal) {
         modal.addEventListener("hidden.bs.modal", () => {
           form.reset();
-          this.isSubmitting = false; // Resetear estado al cerrar modal
+          this.isSubmitting = false; // Resetea el estado al cerrar
         });
       }
     }
   }
 
+  // Obtiene los datos del formulario como objeto
   getFormData(form) {
     const data = {};
     const inputs = form.querySelectorAll("input, textarea, select");
 
     inputs.forEach((input) => {
       if (input.name && input.type !== "submit" && input.type !== "button") {
-        // Para todos los inputs (text, email, tel, textarea, select)
         const value = input.value.trim();
 
-        // Convertir a null si está vacío (opcional para todos los campos)
+        // Convierte campos vacios a null
         data[input.name] = value === "" ? null : value;
       }
     });
@@ -51,6 +54,7 @@ export class FormManager {
     return data;
   }
 
+  // Procesa el envio del formulario con estado de carga
   async submitForm(submitCallback, formData) {
     const form = document.getElementById(this.formId);
     const submitBtn = form?.querySelector('button[type="submit"]');
@@ -68,6 +72,7 @@ export class FormManager {
     }
   }
 
+  // Cambia el estado del boton de envio
   toggleSubmitButton(button, loading, text = "") {
     if (!button) return;
 
@@ -80,6 +85,7 @@ export class FormManager {
     }
   }
 
+  // Cierra el modal asociado al formulario
   closeModal() {
     if (this.modalId) {
       const modal = bootstrap.Modal.getInstance(
@@ -89,6 +95,7 @@ export class FormManager {
     }
   }
 
+  // Llena el formulario con datos existentes (para edicion)
   fillForm(data) {
     const form = document.getElementById(this.formId);
     if (!form) return;
