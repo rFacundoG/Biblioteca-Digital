@@ -308,6 +308,13 @@ class PrestamosManager extends BaseManager {
       return;
     }
 
+     const btn = document.getElementById("confirmarDevolucionBtn");
+     const originalText = btn.innerHTML;
+
+     // Mostrar loading
+     btn.disabled = true;
+     btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Procesando...';
+
     try {
       const tieneDano = estadoLibro.value === "dano";
       const infoMulta = multasService.obtenerInfoMulta(
@@ -348,6 +355,10 @@ class PrestamosManager extends BaseManager {
       this.mostrarDetallesDevolucion();
     } catch (error) {
       this.mostrarError("Error al registrar la devolución: " + error.message);
+    } finally {
+      // Restaurar botón
+      btn.disabled = false;
+      btn.innerHTML = originalText;
     }
   }
 

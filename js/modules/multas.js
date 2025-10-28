@@ -1,4 +1,3 @@
-// multas.js - Clase para gestión de multas
 export class MultasService {
   constructor() {
     this.tasaMultaDiaria = 10; // $10 por día de retraso
