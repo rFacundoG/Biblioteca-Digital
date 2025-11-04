@@ -3,7 +3,6 @@ export class MultasService {
   constructor() {
     this.tasaMultaDiaria = 10; // $10 por cada dia de retraso
     this.multaPorDano = 50; // $50 por dano al libro
-    this.diasGracia = 0; // No hay dias de gracia
   }
 
   // Calcula cuantos dias de retraso tiene un prestamo
