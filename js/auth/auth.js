@@ -1,8 +1,10 @@
 import { supabase } from "../services/supabase.js";
 
 export class AuthService {
+  // Verifica si el usuario puede entrar al sistema
   static async login(email, password) {
     try {
+      // El sistema pregunta a la base de datos si el usuario existe
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
@@ -10,15 +12,15 @@ export class AuthService {
 
       if (error) {
         console.error("Error de login:", error.message);
-        return false;
+        return false; // Acceso denegado
       }
 
       if (data.user) {
         console.log("Login exitoso:", data.user.email);
 
-        // Actualizar last_login en la tabla de perfiles
+        // Registra la hora de ingreso del usuario
         await this.actualizarLastLogin(data.user.id);
-        return true;
+        return true; // Acceso permitido
       }
       return false;
     } catch (error) {

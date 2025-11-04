@@ -30,13 +30,14 @@ class LibrosManager extends BaseManager {
     await super.init(); // Llama al init del BaseManager
   }
 
+  // Plantilla pero con su propia implementación
   async loadData() {
     this.mostrarLoading(true);
     try {
       this.libros = await servicioSingleton.obtenerLibros();
       this.filtrados = [...this.libros];
       this.actualizarEstadisticas();
-      this.renderTable();
+      this.renderTable(); // Implementación específica para libros
     } catch (error) {
       this.mostrarError("Error al cargar los libros: " + error.message);
     } finally {
